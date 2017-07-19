@@ -156,7 +156,7 @@ switch_dev_get_devtree_pdata(struct device *dev)
 }
 #endif
 
-#define KEYCODE_FOPS(WHICH)\
+#define KEYCODE_FOPS(WHICH, MODE)\
 	static int keyCode_##WHICH##_show(struct seq_file *seq, void *offset)\
 	{\
 		seq_printf(seq, "%d\n", keyCode_slider_##WHICH);\
@@ -176,7 +176,7 @@ switch_dev_get_devtree_pdata(struct device *dev)
 		if (data < KEYCODE_BASE || data >= (KEYCODE_BASE + TOTAL_KEYCODES))\
 			return t;\
 		keyCode_slider_##WHICH = data;\
-		if (current_mode == 1)\
+		if (current_mode == MODE)\
 			send_input(keyCode_slider_##WHICH);\
 		return t;\
 	}\
@@ -193,9 +193,9 @@ switch_dev_get_devtree_pdata(struct device *dev)
 		.release	= single_release,\
 	};
 
-KEYCODE_FOPS(top);
-KEYCODE_FOPS(middle);
-KEYCODE_FOPS(bottom);
+KEYCODE_FOPS(top, 1);
+KEYCODE_FOPS(middle, 2);
+KEYCODE_FOPS(bottom, 3);
 
 #define REGISTER_IRQ_FOR(KEY)\
 	switch_data->irq_##KEY = gpio_to_irq(switch_data->KEY##_gpio);\
