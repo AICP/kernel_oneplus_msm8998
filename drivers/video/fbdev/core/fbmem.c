@@ -47,6 +47,7 @@
 #define LCD_QOS_TIMEOUT	250000
 #define NO_BOOST	0
 
+#ifdef CONFIG_CPU_FREQ_ONEPLUS_QOS
 static struct pm_qos_request lcdspeedup_little_cpu_qos;
 static struct pm_qos_request lcdspeedup_big_cpu_qos;
 #endif
