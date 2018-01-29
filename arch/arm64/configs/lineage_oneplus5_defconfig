@@ -2,6 +2,10 @@
 # Automatically generated file; DO NOT EDIT.
 # Linux/arm64 4.4.113 Kernel Configuration
 #
+
+# AICP
+CONFIG_SOUND_CONTROL=y
+
 CONFIG_VENDOR_ONEPLUS=y
 CONFIG_ARM64=y
 CONFIG_64BIT=y
