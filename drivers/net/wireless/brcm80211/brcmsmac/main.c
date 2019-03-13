@@ -507,7 +507,7 @@ brcms_c_attach_malloc(uint unit, uint *err, uint devid)
 	wlc->hw->wlc = wlc;
 
 	wlc->hw->bandstate[0] =
-		kzalloc(sizeof(struct brcms_hw_band) * MAXBANDS, GFP_ATOMIC);
+		kcalloc(MAXBANDS, sizeof(struct brcms_hw_band), GFP_ATOMIC);
 	if (wlc->hw->bandstate[0] == NULL) {
 		*err = 1006;
 		goto fail;
@@ -521,7 +521,8 @@ brcms_c_attach_malloc(uint unit, uint *err, uint devid)
 	}
 
 	wlc->modulecb =
-		kzalloc(sizeof(struct modulecb) * BRCMS_MAXMODULES, GFP_ATOMIC);
+		kcalloc(BRCMS_MAXMODULES, sizeof(struct modulecb),
+			GFP_ATOMIC);
 	if (wlc->modulecb == NULL) {
 		*err = 1009;
 		goto fail;
@@ -553,7 +554,7 @@ brcms_c_attach_malloc(uint unit, uint *err, uint devid)
 	}
 
 	wlc->bandstate[0] =
-		kzalloc(sizeof(struct brcms_band)*MAXBANDS, GFP_ATOMIC);
+		kcalloc(MAXBANDS, sizeof(struct brcms_band), GFP_ATOMIC);
 	if (wlc->bandstate[0] == NULL) {
 		*err = 1025;
 		goto fail;
@@ -7076,7 +7077,7 @@ prep_mac80211_status(struct brcms_c_info *wlc, struct d11rxhdr *rxh,
 	channel = BRCMS_CHAN_CHANNEL(rxh->RxChan);
 
 	rx_status->band =
-		channel > 14 ? IEEE80211_BAND_5GHZ : IEEE80211_BAND_2GHZ;
+		channel > 14 ? NL80211_BAND_5GHZ : NL80211_BAND_2GHZ;
 	rx_status->freq =
 		ieee80211_channel_to_frequency(channel, rx_status->band);
 
@@ -7143,7 +7144,7 @@ prep_mac80211_status(struct brcms_c_info *wlc, struct d11rxhdr *rxh,
 		 * a subset of the 2.4G rates. See bitrates field
 		 * of brcms_band_5GHz_nphy (in mac80211_if.c).
 		 */
-		if (rx_status->band == IEEE80211_BAND_5GHZ)
+		if (rx_status->band == NL80211_BAND_5GHZ)
 			rx_status->rate_idx -= BRCMS_LEGACY_5G_RATE_OFFSET;
 
 		/* Determine short preamble and rate_idx */

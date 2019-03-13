@@ -733,7 +733,8 @@ static int zd_mac_config_beacon(struct ieee80211_hw *hw, struct sk_buff *beacon,
 
 	/* Alloc memory for full beacon write at once. */
 	num_cmds = 1 + zd_chip_is_zd1211b(&mac->chip) + full_len;
-	ioreqs = kmalloc(num_cmds * sizeof(struct zd_ioreq32), GFP_KERNEL);
+	ioreqs = kmalloc_array(num_cmds, sizeof(struct zd_ioreq32),
+			       GFP_KERNEL);
 	if (!ioreqs) {
 		r = -ENOMEM;
 		goto out_nofree;
@@ -1068,7 +1069,7 @@ int zd_mac_rx(struct ieee80211_hw *hw, const u8 *buffer, unsigned int length)
 	}
 
 	stats.freq = zd_channels[_zd_chip_get_channel(&mac->chip) - 1].center_freq;
-	stats.band = IEEE80211_BAND_2GHZ;
+	stats.band = NL80211_BAND_2GHZ;
 	stats.signal = zd_check_signal(hw, status->signal_strength);
 
 	rate = zd_rx_rate(buffer, status);
@@ -1395,7 +1396,7 @@ struct ieee80211_hw *zd_mac_alloc_hw(struct usb_interface *intf)
 	mac->band.n_channels = ARRAY_SIZE(zd_channels);
 	mac->band.channels = mac->channels;
 
-	hw->wiphy->bands[IEEE80211_BAND_2GHZ] = &mac->band;
+	hw->wiphy->bands[NL80211_BAND_2GHZ] = &mac->band;
 
 	ieee80211_hw_set(hw, MFP_CAPABLE);
 	ieee80211_hw_set(hw, HOST_BROADCAST_PS_BUFFERING);

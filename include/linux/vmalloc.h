@@ -7,6 +7,7 @@
 #include <linux/llist.h>
 #include <asm/page.h>		/* pgprot_t */
 #include <linux/rbtree.h>
+#include <linux/overflow.h>
 
 struct vm_area_struct;		/* vma defining user mapping in mm_types.h */
 
@@ -69,19 +70,30 @@ static inline void vmalloc_init(void)
 }
 #endif
 
-extern void *vmalloc(unsigned long size);
-extern void *vzalloc(unsigned long size);
-extern void *vmalloc_user(unsigned long size);
-extern void *vmalloc_node(unsigned long size, int node);
-extern void *vzalloc_node(unsigned long size, int node);
-extern void *vmalloc_exec(unsigned long size);
-extern void *vmalloc_32(unsigned long size);
-extern void *vmalloc_32_user(unsigned long size);
-extern void *__vmalloc(unsigned long size, gfp_t gfp_mask, pgprot_t prot);
+extern void *vmalloc(unsigned long size) __attribute__((alloc_size(1)));
+extern void *vzalloc(unsigned long size) __attribute__((alloc_size(1)));
+extern void *vmalloc_user(unsigned long size) __attribute__((alloc_size(1)));
+extern void *vmalloc_node(unsigned long size, int node) __attribute__((alloc_size(1)));
+extern void *vzalloc_node(unsigned long size, int node) __attribute__((alloc_size(1)));
+extern void *vmalloc_exec(unsigned long size) __attribute__((alloc_size(1)));
+extern void *vmalloc_32(unsigned long size) __attribute__((alloc_size(1)));
+extern void *vmalloc_32_user(unsigned long size) __attribute__((alloc_size(1)));
+extern void *__vmalloc(unsigned long size, gfp_t gfp_mask, pgprot_t prot) __attribute__((alloc_size(1)));
 extern void *__vmalloc_node_range(unsigned long size, unsigned long align,
 			unsigned long start, unsigned long end, gfp_t gfp_mask,
 			pgprot_t prot, unsigned long vm_flags, int node,
-			const void *caller);
+			const void *caller) __attribute__((alloc_size(1)));
+#ifndef CONFIG_MMU
+extern void *__vmalloc_node_flags(unsigned long size, int node, gfp_t flags);
+static inline void *__vmalloc_node_flags_caller(unsigned long size, int node,
+						gfp_t flags, void *caller)
+{
+	return __vmalloc_node_flags(size, node, flags);
+}
+#else
+extern void *__vmalloc_node_flags_caller(unsigned long size,
+					 int node, gfp_t flags, void *caller);
+#endif
 
 extern void vfree(const void *addr);
 extern void vfree_atomic(const void *addr);

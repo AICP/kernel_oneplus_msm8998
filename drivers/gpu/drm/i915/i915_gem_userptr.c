@@ -575,19 +575,23 @@ __i915_gem_userptr_get_pages_worker(struct work_struct *_work)
 	ret = -ENOMEM;
 	pinned = 0;
 
-	pvec = kmalloc(npages*sizeof(struct page *),
-		       GFP_TEMPORARY | __GFP_NOWARN | __GFP_NORETRY);
+	pvec = kmalloc_array(npages, sizeof(struct page *),
+			     GFP_TEMPORARY | __GFP_NOWARN | __GFP_NORETRY);
 	if (pvec == NULL)
 		pvec = drm_malloc_ab(npages, sizeof(struct page *));
 	if (pvec != NULL) {
 		struct mm_struct *mm = obj->userptr.mm->mm;
+		unsigned int flags = 0;
+
+		if (!obj->userptr.read_only)
+			flags |= FOLL_WRITE;
 
 		down_read(&mm->mmap_sem);
 		while (pinned < npages) {
 			ret = get_user_pages(work->task, mm,
 					     obj->userptr.ptr + pinned * PAGE_SIZE,
 					     npages - pinned,
-					     !obj->userptr.read_only, 0,
+					     flags,
 					     pvec + pinned, NULL);
 			if (ret < 0)
 				break;
@@ -715,8 +719,8 @@ i915_gem_userptr_get_pages(struct drm_i915_gem_object *obj)
 	pvec = NULL;
 	pinned = 0;
 	if (obj->userptr.mm->mm == current->mm) {
-		pvec = kmalloc(num_pages*sizeof(struct page *),
-			       GFP_TEMPORARY | __GFP_NOWARN | __GFP_NORETRY);
+		pvec = kmalloc_array(num_pages, sizeof(struct page *),
+				     GFP_TEMPORARY | __GFP_NOWARN | __GFP_NORETRY);
 		if (pvec == NULL) {
 			pvec = drm_malloc_ab(num_pages, sizeof(struct page *));
 			if (pvec == NULL) {
@@ -840,6 +844,9 @@ i915_gem_userptr_ioctl(struct drm_device *dev, void *data, struct drm_file *file
 
 	if (args->flags & ~(I915_USERPTR_READ_ONLY |
 			    I915_USERPTR_UNSYNCHRONIZED))
+		return -EINVAL;
+
+	if (!args->user_size)
 		return -EINVAL;
 
 	if (offset_in_page(args->user_ptr | args->user_size))

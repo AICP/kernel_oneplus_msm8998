@@ -43,7 +43,7 @@ mtrr_file_add(unsigned long base, unsigned long size,
 
 	max = num_var_ranges;
 	if (fcount == NULL) {
-		fcount = kzalloc(max * sizeof *fcount, GFP_KERNEL);
+		fcount = kcalloc(max, sizeof(*fcount), GFP_KERNEL);
 		if (!fcount)
 			return -ENOMEM;
 		FILE_FCOUNT(file) = fcount;
@@ -172,6 +172,8 @@ mtrr_ioctl(struct file *file, unsigned int cmd, unsigned long __arg)
 	struct mtrr_sentry sentry;
 	struct mtrr_gentry gentry;
 	void __user *arg = (void __user *) __arg;
+
+	memset(&gentry, 0, sizeof(gentry));
 
 	switch (cmd) {
 	case MTRRIOC_ADD_ENTRY:

@@ -839,12 +839,19 @@ static ssize_t kgsl_pwrctrl_gpuclk_show(struct device *dev,
 				    struct device_attribute *attr,
 				    char *buf)
 {
+	unsigned long freq;
 	struct kgsl_device *device = kgsl_device_from_dev(dev);
 	struct kgsl_pwrctrl *pwr;
 	if (device == NULL)
 		return 0;
 	pwr = &device->pwrctrl;
-	return snprintf(buf, PAGE_SIZE, "%ld\n", kgsl_pwrctrl_active_freq(pwr));
+
+	if (device->state == KGSL_STATE_SLUMBER)
+		freq = pwr->pwrlevels[pwr->num_pwrlevels - 1].gpu_freq;
+	else
+		freq = kgsl_pwrctrl_active_freq(pwr);
+
+	return snprintf(buf, PAGE_SIZE, "%lu\n", freq);
 }
 
 static ssize_t __timer_store(struct device *dev, struct device_attribute *attr,
@@ -2253,8 +2260,9 @@ int kgsl_pwrctrl_init(struct kgsl_device *device)
 		}
 	}
 
-	pwr->bus_ib = kzalloc(bus_scale_table->num_usecases *
-		sizeof(*pwr->bus_ib), GFP_KERNEL);
+	pwr->bus_ib = kcalloc(bus_scale_table->num_usecases,
+			      sizeof(*pwr->bus_ib),
+			      GFP_KERNEL);
 	if (pwr->bus_ib == NULL) {
 		result = -ENOMEM;
 		goto error_cleanup_pcl;
@@ -2785,7 +2793,7 @@ static int _suspend(struct kgsl_device *device)
 	if ((device->state == KGSL_STATE_NONE) ||
 			(device->state == KGSL_STATE_INIT) ||
 			(device->state == KGSL_STATE_SUSPEND))
-		goto done;
+		return ret;
 
 	/* drain to prevent from more commands being submitted */
 	device->ftbl->drain(device);
@@ -2802,7 +2810,6 @@ static int _suspend(struct kgsl_device *device)
 	if (ret)
 		goto err;
 
-done:
 	kgsl_pwrctrl_set_state(device, KGSL_STATE_SUSPEND);
 	return ret;
 

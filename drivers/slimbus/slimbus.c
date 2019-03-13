@@ -393,7 +393,7 @@ int slim_register_board_info(struct slim_boardinfo const *info, unsigned n)
 	struct sbi_boardinfo *bi;
 	int i;
 
-	bi = kzalloc(n * sizeof(*bi), GFP_KERNEL);
+	bi = kcalloc(n, sizeof(*bi), GFP_KERNEL);
 	if (!bi)
 		return -ENOMEM;
 
@@ -477,7 +477,7 @@ static int slim_register_controller(struct slim_controller *ctrl)
 							&ctrl->dev);
 
 	if (ctrl->nports) {
-		ctrl->ports = kzalloc(ctrl->nports * sizeof(struct slim_port),
+		ctrl->ports = kcalloc(ctrl->nports, sizeof(struct slim_port),
 					GFP_KERNEL);
 		if (!ctrl->ports) {
 			ret = -ENOMEM;
@@ -485,7 +485,7 @@ static int slim_register_controller(struct slim_controller *ctrl)
 		}
 	}
 	if (ctrl->nchans) {
-		ctrl->chans = kzalloc(ctrl->nchans * sizeof(struct slim_ich),
+		ctrl->chans = kcalloc(ctrl->nchans, sizeof(struct slim_ich),
 					GFP_KERNEL);
 		if (!ctrl->chans) {
 			ret = -ENOMEM;
@@ -493,16 +493,16 @@ static int slim_register_controller(struct slim_controller *ctrl)
 		}
 
 		ctrl->sched.chc1 =
-			kzalloc(ctrl->nchans * sizeof(struct slim_ich *),
-			GFP_KERNEL);
+			kcalloc(ctrl->nchans, sizeof(struct slim_ich *),
+				GFP_KERNEL);
 		if (!ctrl->sched.chc1) {
 			kfree(ctrl->chans);
 			ret = -ENOMEM;
 			goto err_chan_failed;
 		}
 		ctrl->sched.chc3 =
-			kzalloc(ctrl->nchans * sizeof(struct slim_ich *),
-			GFP_KERNEL);
+			kcalloc(ctrl->nchans, sizeof(struct slim_ich *),
+				GFP_KERNEL);
 		if (!ctrl->sched.chc3) {
 			kfree(ctrl->sched.chc1);
 			kfree(ctrl->chans);
@@ -1323,8 +1323,10 @@ int slim_config_mgrports(struct slim_device *sb, u32 *ph, int nports,
 	for (i = 0; i < nports; i++) {
 		u8 pn = SLIM_HDL_TO_PORT(ph[i]);
 
-		if (ctrl->ports[pn].state == SLIM_P_CFG)
+		if (ctrl->ports[pn].state == SLIM_P_CFG) {
+			mutex_unlock(&ctrl->sched.m_reconf);
 			return -EISCONN;
+		}
 		ctrl->ports[pn].cfg = *cfg;
 	}
 	mutex_unlock(&ctrl->sched.m_reconf);
@@ -2753,9 +2755,10 @@ static void slim_change_existing_chans(struct slim_controller *ctrl, int coeff)
 	for (i = 0; i < len; i++) {
 		struct slim_ich *slc = arr[i];
 		if (slc->state == SLIM_CH_ACTIVE ||
-			slc->state == SLIM_CH_SUSPENDED)
+			slc->state == SLIM_CH_SUSPENDED) {
 			slc->offset = slc->newoff;
 			slc->interval = slc->newintr;
+		}
 	}
 }
 static void slim_chan_changes(struct slim_device *sb, bool revert)

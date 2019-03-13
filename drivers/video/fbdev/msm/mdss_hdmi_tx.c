@@ -1586,7 +1586,8 @@ static void hdmi_tx_hdcp_cb(void *ptr, enum hdcp_states status)
 
 	hdmi_ctrl->hdcp_status = status;
 
-	queue_delayed_work(hdmi_ctrl->workq, &hdmi_ctrl->hdcp_cb_work, HZ/4);
+	queue_delayed_work(hdmi_ctrl->workq, &hdmi_ctrl->hdcp_cb_work,
+						msecs_to_jiffies(250));
 }
 
 static inline bool hdmi_tx_is_stream_shareable(struct hdmi_tx_ctrl *hdmi_ctrl)
@@ -4178,7 +4179,7 @@ static int hdmi_tx_post_evt_handle_resume(struct hdmi_tx_ctrl *hdmi_ctrl)
 
 		reinit_completion(&hdmi_ctrl->hpd_int_done);
 		timeout = wait_for_completion_timeout(
-			&hdmi_ctrl->hpd_int_done, HZ/10);
+			&hdmi_ctrl->hpd_int_done, msecs_to_jiffies(100));
 		if (!timeout) {
 			pr_debug("cable removed during suspend\n");
 			hdmi_tx_send_audio_notification(hdmi_ctrl, 0);
@@ -4418,8 +4419,10 @@ static int hdmi_tx_init_power_data(struct device *dev,
 	}
 
 	hpd_power_data->num_clk = hpd_clk_count;
-	hpd_power_data->clk_config = devm_kzalloc(dev, sizeof(struct dss_clk) *
-			hpd_power_data->num_clk, GFP_KERNEL);
+	hpd_power_data->clk_config = devm_kcalloc(dev,
+						  hpd_power_data->num_clk,
+						  sizeof(struct dss_clk),
+						  GFP_KERNEL);
 	if (!hpd_power_data->clk_config) {
 		rc = -EINVAL;
 		goto exit;
@@ -4433,8 +4436,10 @@ static int hdmi_tx_init_power_data(struct device *dev,
 	}
 
 	core_power_data->num_clk = core_clk_count;
-	core_power_data->clk_config = devm_kzalloc(dev, sizeof(struct dss_clk) *
-			core_power_data->num_clk, GFP_KERNEL);
+	core_power_data->clk_config = devm_kcalloc(dev,
+						   core_power_data->num_clk,
+						   sizeof(struct dss_clk),
+						   GFP_KERNEL);
 	if (!core_power_data->clk_config) {
 		core_power_data->num_clk = 0;
 		rc = -EINVAL;
@@ -4591,8 +4596,10 @@ static int hdmi_tx_get_dt_vreg_data(struct device *dev,
 
 	if (mod_vreg_total > 0) {
 		mp->num_vreg = mod_vreg_total;
-		mp->vreg_config = devm_kzalloc(dev, sizeof(struct dss_vreg) *
-			mod_vreg_total, GFP_KERNEL);
+		mp->vreg_config = devm_kcalloc(dev,
+					       mod_vreg_total,
+					       sizeof(struct dss_vreg),
+					       GFP_KERNEL);
 		if (!mp->vreg_config) {
 			DEV_ERR("%s: can't alloc '%s' vreg mem\n", __func__,
 				hdmi_tx_pm_name(module_type));
@@ -4603,7 +4610,7 @@ static int hdmi_tx_get_dt_vreg_data(struct device *dev,
 		return 0;
 	}
 
-	val_array = devm_kzalloc(dev, sizeof(u32) * dt_vreg_total, GFP_KERNEL);
+	val_array = devm_kcalloc(dev, dt_vreg_total, sizeof(u32), GFP_KERNEL);
 	if (!val_array) {
 		DEV_ERR("%s: can't allocate vreg scratch mem\n", __func__);
 		rc = -ENOMEM;
@@ -4770,8 +4777,9 @@ static int hdmi_tx_get_dt_gpio_data(struct device *dev,
 	DEV_DBG("%s: mp_gpio_cnt = %d\n", __func__, mp_gpio_cnt);
 	mp->num_gpio = mp_gpio_cnt;
 
-	mp->gpio_config = devm_kzalloc(dev, sizeof(struct dss_gpio) *
-		mp_gpio_cnt, GFP_KERNEL);
+	mp->gpio_config = devm_kcalloc(dev,
+				       mp_gpio_cnt, sizeof(struct dss_gpio),
+				       GFP_KERNEL);
 	if (!mp->gpio_config) {
 		DEV_ERR("%s: can't alloc '%s' gpio mem\n", __func__,
 			hdmi_tx_pm_name(module_type));

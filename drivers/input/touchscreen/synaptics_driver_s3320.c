@@ -550,7 +550,7 @@ static void touch_disable(struct synaptics_ts_data *ts)
 
 static int tpd_hw_pwron(struct synaptics_ts_data *ts)
 {
-	int rc;
+	int rc = 0;
 
 	/***enable the 2v8 power*****/
 	if (!IS_ERR(ts->vdd_2v8)) {
@@ -1208,6 +1208,7 @@ static void gesture_judge(struct synaptics_ts_data *ts)
 		(gesture_buffer[2] == 0x73) ? Sgestrue : UnkownGestrue;
 	}
 
+#if 0
 	keyCode = UnkownGestrue;
 	/* Get key code based on registered gesture */
 	switch (gesture) {
@@ -1244,6 +1245,7 @@ static void gesture_judge(struct synaptics_ts_data *ts)
 	default:
 		break;
 	}
+#endif
 
 	TPD_ERR("detect %s gesture\n", gesture == DouTap ? "(double tap)" :
 			gesture == UpVee ? "(V)" :

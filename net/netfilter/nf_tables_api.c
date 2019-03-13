@@ -3452,6 +3452,7 @@ static int nft_add_set_elem(struct nft_ctx *ctx, struct nft_set *set,
 		dreg = nft_type_to_reg(set->dtype);
 		list_for_each_entry(binding, &set->bindings, list) {
 			struct nft_ctx bind_ctx = {
+				.net	= ctx->net,
 				.afi	= ctx->afi,
 				.table	= ctx->table,
 				.chain	= (struct nft_chain *)binding->chain,
@@ -4595,8 +4596,8 @@ static int __init nf_tables_module_init(void)
 {
 	int err;
 
-	info = kmalloc(sizeof(struct nft_expr_info) * NFT_RULE_MAXEXPRS,
-		       GFP_KERNEL);
+	info = kmalloc_array(NFT_RULE_MAXEXPRS, sizeof(struct nft_expr_info),
+			     GFP_KERNEL);
 	if (info == NULL) {
 		err = -ENOMEM;
 		goto err1;

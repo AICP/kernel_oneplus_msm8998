@@ -59,14 +59,13 @@ static type **allocate_2d_array_##type(int idx)\
 	type **ptr = NULL;\
 	if (!idx) \
 		return ERR_PTR(-EINVAL);\
-	ptr = kzalloc(sizeof(*ptr) * TEMP_DATA_POINTS, \
+	ptr = kcalloc(TEMP_DATA_POINTS, sizeof(*ptr), \
 				GFP_KERNEL);\
 	if (!ptr) { \
 		return ERR_PTR(-ENOMEM); \
 	} \
 	for (i = 0; i < TEMP_DATA_POINTS; i++) { \
-		ptr[i] = kzalloc(sizeof(*ptr[i]) * \
-					idx, GFP_KERNEL);\
+		ptr[i] = kcalloc(idx, sizeof(*ptr[i]), GFP_KERNEL);\
 		if (!ptr[i]) {\
 			goto done;\
 		} \
@@ -112,11 +111,12 @@ static struct cpu_pwr_stats cpu_stats[NR_CPUS];
 static uint32_t scaling_factor;
 ALLOCATE_2D_ARRAY(uint32_t);
 
-static int poll_ms;
-module_param_named(polling_interval, poll_ms, int,
+static __read_mostly int poll_ms;
+static __read_mostly int poll_ms_dummy;
+module_param_named(polling_interval, poll_ms_dummy, int,
 		S_IRUGO | S_IWUSR | S_IWGRP);
 
-static int disabled;
+static __read_mostly int disabled;
 module_param_named(disabled, disabled, int,
 		S_IRUGO | S_IWUSR | S_IWGRP);
 static bool in_suspend;
@@ -310,7 +310,7 @@ static __ref int do_sampling(void *data)
 	static int prev_temp[NR_CPUS];
 
 	while (!kthread_should_stop()) {
-		wait_for_completion(&sampling_completion);
+		wait_for_completion_interruptible(&sampling_completion);
 		cancel_delayed_work(&sampling_work);
 
 		mutex_lock(&kthread_update_mutex);
@@ -334,7 +334,8 @@ static __ref int do_sampling(void *data)
 		if (!poll_ms)
 			goto unlock;
 
-		schedule_delayed_work(&sampling_work,
+		queue_delayed_work(system_power_efficient_wq,
+			&sampling_work,
 			msecs_to_jiffies(poll_ms));
 unlock:
 		mutex_unlock(&kthread_update_mutex);
@@ -580,8 +581,8 @@ static int msm_core_stats_init(struct device *dev, int cpu)
 	cpu_stats[cpu].throttling = false;
 
 	cpu_stats[cpu].len = cpu_node->sp->num_of_freqs;
-	pstate = devm_kzalloc(dev,
-		sizeof(*pstate) * cpu_node->sp->num_of_freqs,
+	pstate = devm_kcalloc(dev,
+		cpu_node->sp->num_of_freqs, sizeof(*pstate),
 		GFP_KERNEL);
 	if (!pstate)
 		return -ENOMEM;
@@ -659,8 +660,8 @@ static int msm_get_voltage_levels(struct device *dev, int cpu,
 	if (!cpu_dev)
 		return -ENODEV;
 
-	voltage = devm_kzalloc(dev,
-			sizeof(*voltage) * sp->num_of_freqs, GFP_KERNEL);
+	voltage = devm_kcalloc(dev,
+			sp->num_of_freqs, sizeof(*voltage), GFP_KERNEL);
 
 	if (!voltage)
 		return -ENOMEM;

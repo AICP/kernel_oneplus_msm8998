@@ -1539,7 +1539,7 @@ int diag_create_msg_mask_table_entry(struct diag_msg_mask_t *msg_mask,
 	msg_mask->range_tools = msg_mask->range;
 	mutex_init(&msg_mask->lock);
 	if (msg_mask->range > 0) {
-		msg_mask->ptr = kzalloc(msg_mask->range * sizeof(uint32_t),
+		msg_mask->ptr = kcalloc(msg_mask->range, sizeof(uint32_t),
 					GFP_KERNEL);
 		if (!msg_mask->ptr)
 			return -ENOMEM;
@@ -1748,6 +1748,7 @@ static int __diag_mask_init(struct diag_mask_info *mask_info, int mask_len,
 		mask_info->update_buf = kzalloc(update_buf_len, GFP_KERNEL);
 		if (!mask_info->update_buf) {
 			kfree(mask_info->ptr);
+			mask_info->ptr = NULL;
 			return -ENOMEM;
 		}
 		kmemleak_not_leak(mask_info->update_buf);

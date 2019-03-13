@@ -435,7 +435,7 @@ static int ioh_gpio_probe(struct pci_dev *pdev,
 		goto err_iomap;
 	}
 
-	chip_save = kzalloc(sizeof(*chip) * 8, GFP_KERNEL);
+	chip_save = kcalloc(8, sizeof(*chip), GFP_KERNEL);
 	if (chip_save == NULL) {
 		dev_err(&pdev->dev, "%s : kzalloc failed", __func__);
 		ret = -ENOMEM;
@@ -495,9 +495,10 @@ err_irq_alloc_descs:
 
 	chip = chip_save;
 err_gpiochip_add:
+	chip = chip_save;
 	while (--i >= 0) {
-		chip--;
 		gpiochip_remove(&chip->gpio);
+		chip++;
 	}
 	kfree(chip_save);
 

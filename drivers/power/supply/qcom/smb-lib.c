@@ -36,6 +36,10 @@
 #include <linux/fb.h>
 #endif /*CONFIG_FB*/
 
+#ifdef CONFIG_FORCE_FAST_CHARGE
+#include <linux/fastchg.h>
+#endif
+
 #define SOC_INVALID                   0x7E
 #define SOC_DATA_REG_0                0x88D
 #define HEARTBEAT_INTERVAL_MS         6000
@@ -46,6 +50,9 @@
 #define CHG_VOLTAGE_NORMAL            5000
 #define BATT_REMOVE_TEMP              -400
 #define BATT_TEMP_HYST                20
+
+const union power_supply_propval otg_on = {1,};
+const union power_supply_propval otg_off = {0,};
 
 struct smb_charger *g_chg;
 struct qpnp_pon *pm_pon;
@@ -73,6 +80,9 @@ static int get_prop_fg_current_now(struct smb_charger *chg);
 static int get_prop_fg_voltage_now(struct smb_charger *chg);
 static void op_check_charger_collapse(struct smb_charger *chg);
 static int op_set_collapse_fet(struct smb_charger *chg, bool on);
+#ifdef CONFIG_CUSTOM_ROM
+static void set_spoof_usb_fastcharge(void);
+#endif
 
 #define smblib_err(chg, fmt, ...)		\
 	pr_err("%s: %s: " fmt, chg->name,	\
@@ -252,7 +262,7 @@ enum {
 	MAX_TYPES
 };
 
-static const struct apsd_result const smblib_apsd_results[] = {
+static const struct apsd_result smblib_apsd_results[] = {
 	[UNKNOWN] = {
 		.name	= "UNKNOWN",
 		.bit	= 0,
@@ -873,6 +883,13 @@ static int set_sdp_current(struct smb_charger *chg, int icl_ua)
 	int rc;
 	u8 icl_options;
 	const struct apsd_result *apsd_result = smblib_get_apsd_result(chg);
+
+#ifdef CONFIG_FORCE_FAST_CHARGE
+	if (force_fast_charge > 0 && icl_ua == USBIN_500MA)
+	{
+		icl_ua = USBIN_900MA;
+	}
+#endif
 
 	/* power source is SDP */
 	switch (icl_ua) {
@@ -5213,11 +5230,13 @@ static void set_usb_switch(struct smb_charger *chg, bool enable)
 
 	if (!fast_charger) {
 		pr_err("no fast_charger register found\n");
+		op_set_prop_otg_switch(chg, &otg_on);
 		return;
 	}
 
 	if (enable) {
 		pr_err("switch on fastchg\n");
+		op_set_prop_otg_switch(chg, &otg_off);
 		if (chg->boot_usb_present && chg->re_trigr_dash_done) {
 			vote(chg->usb_icl_votable, AICL_RERUN_VOTER,
 					true, 0);
@@ -5241,6 +5260,7 @@ static void set_usb_switch(struct smb_charger *chg, bool enable)
 		pr_err("switch off fastchg\n");
 		usb_sw_gpio_set(0);
 		mcu_en_gpio_set(1);
+		op_set_prop_otg_switch(chg, &otg_on);
 	}
 }
 
@@ -5453,6 +5473,9 @@ static int set_dash_charger_present(int status)
 			g_chg->usb_psy_desc.type = POWER_SUPPLY_TYPE_USB_DCP;
 			vote(g_chg->usb_icl_votable, PD_VOTER, true,
 					DEFAULT_WALL_CHG_MA * 1000);
+#ifdef CONFIG_CUSTOM_ROM
+			set_spoof_usb_fastcharge();
+#endif
 		}
 		power_supply_changed(g_chg->batt_psy);
 		pr_info("dash_present = %d, charger_present = %d\n",
@@ -7526,6 +7549,8 @@ int smblib_init(struct smb_charger *chg)
 		return -EINVAL;
 	}
 
+	op_set_prop_otg_switch(chg, &otg_on);
+
 	return rc;
 }
 
@@ -7551,3 +7576,26 @@ int smblib_deinit(struct smb_charger *chg)
 	notify_dash_unplug_unregister(&notify_unplug_event);
 	return 0;
 }
+
+#ifdef CONFIG_CUSTOM_ROM
+static void set_spoof_usb_fastcharge()
+{
+	int rc;
+	static struct power_supply *usb;
+	union power_supply_propval ret = {0, };
+
+	if (!usb) {
+		usb = power_supply_get_by_name("usb");
+        }
+	if (usb) {
+		ret.intval = 7500001;
+		rc = power_supply_set_property(usb, POWER_SUPPLY_PROP_CURRENT_MAX, &ret);
+		if (rc) {
+			pr_err("usb psy does not allow updating prop %d rc = %d\n",
+				POWER_SUPPLY_PROP_CURRENT_MAX, rc);
+		}
+	} else {
+		pr_err("no usb psy found\n");
+	}
+}
+#endif

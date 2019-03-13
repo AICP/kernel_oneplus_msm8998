@@ -317,8 +317,8 @@ int mdss_mdp_video_addr_setup(struct mdss_data_type *mdata,
 	struct mdss_mdp_video_ctx *head;
 	u32 i;
 
-	head = devm_kzalloc(&mdata->pdev->dev,
-			sizeof(struct mdss_mdp_video_ctx) * count, GFP_KERNEL);
+	head = devm_kcalloc(&mdata->pdev->dev,
+			count, sizeof(struct mdss_mdp_video_ctx), GFP_KERNEL);
 	if (!head)
 		return -ENOMEM;
 
@@ -1232,7 +1232,7 @@ static int mdss_mdp_video_wait4comp(struct mdss_mdp_ctl *ctl, void *arg)
 		if (rc == 0) {
 			pr_warn("vsync wait timeout %d, fallback to poll mode\n",
 					ctl->num);
-			ctx->polling_en++;
+			ctx->polling_en = true;
 			rc = mdss_mdp_video_pollwait(ctl);
 		} else {
 			rc = 0;

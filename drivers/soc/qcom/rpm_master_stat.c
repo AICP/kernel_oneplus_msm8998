@@ -378,7 +378,9 @@ static struct msm_rpm_master_stats_platform_data
 		goto err;
 	}
 
-	pdata->masters = devm_kzalloc(dev, sizeof(char *) * pdata->num_masters,
+	pdata->masters = devm_kcalloc(dev,
+								pdata->num_masters,
+								sizeof(char *),
 								GFP_KERNEL);
 	if (!pdata->masters)
 		goto err;
@@ -397,7 +399,7 @@ static struct msm_rpm_master_stats_platform_data
 			goto err;
 
 		strlcpy(pdata->masters[i], master_name,
-					strlen(master_name) + 1);
+					strlen(pdata->masters[i]) + 1);
 	}
 	return pdata;
 err:

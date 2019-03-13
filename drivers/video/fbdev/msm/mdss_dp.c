@@ -273,8 +273,10 @@ static int mdss_dp_init_clk_power_data(struct device *dev,
 	}
 
 	core_power_data->num_clk = core_clk_count;
-	core_power_data->clk_config = devm_kzalloc(dev, sizeof(struct dss_clk) *
-			core_power_data->num_clk, GFP_KERNEL);
+	core_power_data->clk_config = devm_kcalloc(dev,
+						   core_power_data->num_clk,
+						   sizeof(struct dss_clk),
+						   GFP_KERNEL);
 	if (!core_power_data->clk_config) {
 		rc = -EINVAL;
 		goto exit;
@@ -288,8 +290,10 @@ static int mdss_dp_init_clk_power_data(struct device *dev,
 	}
 
 	ctrl_power_data->num_clk = ctrl_clk_count;
-	ctrl_power_data->clk_config = devm_kzalloc(dev, sizeof(struct dss_clk) *
-			ctrl_power_data->num_clk, GFP_KERNEL);
+	ctrl_power_data->clk_config = devm_kcalloc(dev,
+						   ctrl_power_data->num_clk,
+						   sizeof(struct dss_clk),
+						   GFP_KERNEL);
 	if (!ctrl_power_data->clk_config) {
 		ctrl_power_data->num_clk = 0;
 		rc = -EINVAL;
@@ -651,8 +655,9 @@ static int mdss_dp_get_dt_vreg_data(struct device *dev,
 		pr_debug("vreg found. count=%d\n", mp->num_vreg);
 	}
 
-	mp->vreg_config = devm_kzalloc(dev, sizeof(struct dss_vreg) *
-		mp->num_vreg, GFP_KERNEL);
+	mp->vreg_config = devm_kcalloc(dev,
+				       mp->num_vreg, sizeof(struct dss_vreg),
+				       GFP_KERNEL);
 	if (!mp->vreg_config) {
 		rc = -ENOMEM;
 		goto error;
@@ -2116,6 +2121,7 @@ static int mdss_dp_host_deinit(struct mdss_dp_drv_pdata *dp)
 static int mdss_dp_notify_clients(struct mdss_dp_drv_pdata *dp,
 	enum notification_status status)
 {
+	const int irq_comp_timeout = 2000;
 	int ret = 0;
 	bool notify = false;
 	bool connect;
@@ -2429,7 +2435,7 @@ static void mdss_dp_hdcp_cb(void *ptr, enum hdcp_states status)
 	dp->hdcp_status = status;
 
 	if (dp->alt_mode.dp_status.hpd_high)
-		queue_delayed_work(dp->workq, &dp->hdcp_cb_work, HZ/4);
+		queue_delayed_work(dp->workq, &dp->hdcp_cb_work, msecs_to_jiffies(250));
 }
 
 static int mdss_dp_hdcp_init(struct mdss_panel_data *pdata)
@@ -3029,7 +3035,7 @@ static void mdss_dp_mainlink_push_idle(struct mdss_panel_data *pdata)
 {
 	bool cable_connected;
 	struct mdss_dp_drv_pdata *dp_drv = NULL;
-	const int idle_pattern_completion_timeout_ms = 3 * HZ / 100;
+	const int idle_pattern_completion_timeout_ms = 30;
 
 	dp_drv = container_of(pdata, struct mdss_dp_drv_pdata,
 				panel_data);
@@ -3059,7 +3065,7 @@ static void mdss_dp_mainlink_push_idle(struct mdss_panel_data *pdata)
 	reinit_completion(&dp_drv->idle_comp);
 	mdss_dp_state_ctrl(&dp_drv->ctrl_io, ST_PUSH_IDLE);
 	if (!wait_for_completion_timeout(&dp_drv->idle_comp,
-			idle_pattern_completion_timeout_ms))
+			msecs_to_jiffies(idle_pattern_completion_timeout_ms)))
 		pr_warn("PUSH_IDLE pattern timedout\n");
 
 	mutex_unlock(&dp_drv->train_mutex);
@@ -3159,7 +3165,7 @@ static int mdss_dp_event_handler(struct mdss_panel_data *pdata,
 
 			dp->hdcp_status = HDCP_STATE_AUTHENTICATING;
 			queue_delayed_work(dp->workq,
-				&dp->hdcp_cb_work, HZ / 2);
+				&dp->hdcp_cb_work, msecs_to_jiffies(500));
 		}
 		break;
 	case MDSS_EVENT_POST_PANEL_ON:

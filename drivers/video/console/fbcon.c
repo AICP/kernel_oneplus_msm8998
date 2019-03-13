@@ -588,7 +588,8 @@ static void fbcon_prepare_logo(struct vc_data *vc, struct fb_info *info,
 		if (scr_readw(r) != vc->vc_video_erase_char)
 			break;
 	if (r != q && new_rows >= rows + logo_lines) {
-		save = kmalloc(logo_lines * new_cols * 2, GFP_KERNEL);
+		save = kmalloc(array3_size(logo_lines, new_cols, 2),
+			       GFP_KERNEL);
 		if (save) {
 			int i = cols < new_cols ? cols : new_cols;
 			scr_memsetw(save, erase, logo_lines * new_cols * 2);
@@ -3032,7 +3033,7 @@ static int fbcon_fb_unbind(int idx)
 	for (i = first_fb_vc; i <= last_fb_vc; i++) {
 		if (con2fb_map[i] != idx &&
 		    con2fb_map[i] != -1) {
-			new_idx = i;
+			new_idx = con2fb_map[i];
 			break;
 		}
 	}

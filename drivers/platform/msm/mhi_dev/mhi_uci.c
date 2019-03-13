@@ -620,9 +620,9 @@ static int uci_init_client_attributes(struct mhi_uci_ctxt_t *uci_ctxt)
 			client = &uci_ctxt->client_handles[index];
 			chan_attrib->nr_trbs = 9;
 			client->in_buf_list =
-			      kmalloc(sizeof(struct mhi_dev_iov) *
-					      chan_attrib->nr_trbs,
-					GFP_KERNEL);
+			      kmalloc_array(chan_attrib->nr_trbs,
+					    sizeof(struct mhi_dev_iov),
+					    GFP_KERNEL);
 			if (client->in_buf_list == NULL)
 				return -ENOMEM;
 		}
@@ -737,12 +737,14 @@ int mhi_uci_init(void)
 	struct uci_client *mhi_client = NULL;
 	s32 r = 0;
 
+#ifdef CONFIG_IPC_LOGGING
 	mhi_uci_ipc_log = ipc_log_context_create(MHI_UCI_IPC_LOG_PAGES,
 						"mhi-uci", 0);
 	if (mhi_uci_ipc_log == NULL) {
 		uci_log(UCI_DBG_WARNING,
 				"Failed to create IPC logging context\n");
 	}
+#endif
 	uci_ctxt.event_notifier = uci_event_notifier;
 
 	uci_log(UCI_DBG_DBG, "Setting up channel attributes.\n");

@@ -153,8 +153,6 @@ static void msm_spm_drv_flush_shadow(struct msm_spm_driver_data *dev,
 {
 	BUG_ON(!dev);
 
-	BUG_ON(!dev->reg_shadow);
-
 	__raw_writel(dev->reg_shadow[reg_index],
 		dev->reg_base_addr + dev->reg_offsets[reg_index]);
 }
@@ -705,7 +703,7 @@ int msm_spm_drv_init(struct msm_spm_driver_data *dev,
 	num_spm_entry = msm_spm_drv_get_num_spm_entry(dev);
 
 	dev->reg_seq_entry_shadow =
-		kzalloc(sizeof(*dev->reg_seq_entry_shadow) * num_spm_entry,
+		kcalloc(num_spm_entry, sizeof(*dev->reg_seq_entry_shadow),
 				GFP_KERNEL);
 
 	if (!dev->reg_seq_entry_shadow)

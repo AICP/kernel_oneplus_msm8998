@@ -497,7 +497,7 @@ static int32_t msm_sensor_get_pw_settings_compat(
 {
 	int32_t rc = 0, i = 0;
 	struct msm_sensor_power_setting32 *ps32 =
-		kzalloc(sizeof(*ps32) * size, GFP_KERNEL);
+		kcalloc(size, sizeof(*ps32), GFP_KERNEL);
 
 	if (!ps32) {
 		pr_err("failed: no memory ps32");
@@ -575,7 +575,7 @@ static int32_t msm_sensor_get_power_down_settings(void *setting,
 		return -EINVAL;
 	}
 	/* Allocate memory for power down setting */
-	pd = kzalloc(sizeof(*pd) * size_down, GFP_KERNEL);
+	pd = kcalloc(size_down, sizeof(*pd), GFP_KERNEL);
 	if (!pd)
 		return -EFAULT;
 
@@ -640,7 +640,7 @@ static int32_t msm_sensor_get_power_up_settings(void *setting,
 	}
 
 	/* Allocate memory for power up setting */
-	pu = kzalloc(sizeof(*pu) * size, GFP_KERNEL);
+	pu = kcalloc(size, sizeof(*pu), GFP_KERNEL);
 	if (!pu)
 		return -ENOMEM;
 
@@ -1109,24 +1109,24 @@ CSID_TG:
 	/*Save sensor info*/
 	s_ctrl->sensordata->cam_slave_info = slave_info;
 
-    if (0 == slave_info->camera_id)
-        CameraID = R_CAMERA;
-    else if (1 == slave_info->camera_id)
-        CameraID = SECOND_R_CAMERA;
-    else if (2 == slave_info->camera_id)
-        CameraID = F_CAMERA;
+if (0 == slave_info->camera_id)
+    CameraID = R_CAMERA;
+else if (1 == slave_info->camera_id)
+    CameraID = SECOND_R_CAMERA;
+else if (2 == slave_info->camera_id)
+    CameraID = F_CAMERA;
 
-    count = ARRAY_SIZE(match_tbl);
-    for (i = 0;i < count;i++) {
-        if (!strcmp(slave_info->sensor_name,match_tbl[i].sensor_name))
-            break;
-    }
-    if (i >= count)
-        pr_err("%s,Match camera sensor faild!,current sensor name is %s",
-            __func__,slave_info->sensor_name);
-    else
-        push_component_info(CameraID,slave_info->sensor_name,
-            match_tbl[i].vendor_name);
+count = ARRAY_SIZE(match_tbl);
+for (i = 0;i < count;i++) {
+    if (!strcmp(slave_info->sensor_name,match_tbl[i].sensor_name))
+        break;
+}
+if (i >= count)
+    pr_err("%s,Match camera sensor faild!,current sensor name is %s",
+        __func__,slave_info->sensor_name);
+else
+    push_component_info(CameraID,slave_info->sensor_name,
+        match_tbl[i].vendor_name);
 
 	msm_sensor_fill_sensor_info(s_ctrl, probed_info, entity_name);
 

@@ -3784,7 +3784,7 @@ static struct st_buffer *new_tape_buffer(int need_dma, int max_sg)
 	tb->dma = need_dma;
 	tb->buffer_size = 0;
 
-	tb->reserved_pages = kzalloc(max_sg * sizeof(struct page *),
+	tb->reserved_pages = kcalloc(max_sg, sizeof(struct page *),
 				     GFP_ATOMIC);
 	if (!tb->reserved_pages) {
 		kfree(tb);
@@ -4811,7 +4811,7 @@ static int sgl_map_user_pages(struct st_buffer *STbp,
 	if (count == 0)
 		return 0;
 
-	if ((pages = kmalloc(max_pages * sizeof(*pages), GFP_KERNEL)) == NULL)
+	if ((pages = kmalloc_array(max_pages, sizeof(*pages), GFP_KERNEL)) == NULL)
 		return -ENOMEM;
 
         /* Try to fault in all of the necessary pages */
@@ -4821,9 +4821,8 @@ static int sgl_map_user_pages(struct st_buffer *STbp,
 		current->mm,
 		uaddr,
 		nr_pages,
-		rw == READ,
-		0, /* don't force */
-		pages);
+		pages,
+		rw == READ ? FOLL_WRITE : 0); /* don't force */
 
 	/* Errors and no page mapped should return here */
 	if (res < nr_pages)

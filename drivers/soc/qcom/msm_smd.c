@@ -2339,8 +2339,9 @@ static int smsm_cb_init(void)
 	int n;
 	int ret = 0;
 
-	smsm_states = kmalloc(sizeof(struct smsm_state_info)*SMSM_NUM_ENTRIES,
-		   GFP_KERNEL);
+	smsm_states = kmalloc_array(SMSM_NUM_ENTRIES,
+				    sizeof(struct smsm_state_info),
+				    GFP_KERNEL);
 
 	if (!smsm_states) {
 		pr_err("%s: SMSM init failed\n", __func__);
@@ -3207,6 +3208,7 @@ int __init msm_smd_init(void)
 	if (registered)
 		return 0;
 
+#ifdef CONFIG_IPC_LOGGING
 	smd_log_ctx = ipc_log_context_create(NUM_LOG_PAGES, "smd", 0);
 	if (!smd_log_ctx) {
 		pr_err("%s: unable to create SMD logging context\n", __func__);
@@ -3218,6 +3220,10 @@ int __init msm_smd_init(void)
 		pr_err("%s: unable to create SMSM logging context\n", __func__);
 		msm_smd_debug_mask = 0;
 	}
+#else
+	pr_debug("IPC Logging creation skipped.\n");
+	msm_smd_debug_mask = 0;
+#endif
 
 	registered = true;
 

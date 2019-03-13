@@ -465,8 +465,9 @@ megasas_alloc_cmds_fusion(struct megasas_instance *instance)
 	 * Allocate the dynamic array first and then allocate individual
 	 * commands.
 	 */
-	fusion->cmd_list = kzalloc(sizeof(struct megasas_cmd_fusion *)
-				   * max_cmd, GFP_KERNEL);
+	fusion->cmd_list = kcalloc(max_cmd,
+				   sizeof(struct megasas_cmd_fusion *),
+				   GFP_KERNEL);
 
 	if (!fusion->cmd_list) {
 		dev_printk(KERN_DEBUG, &instance->pdev->dev, "out of memory. Could not alloc "
@@ -1758,7 +1759,7 @@ static void megasas_build_ld_nonrw_fusion(struct megasas_instance *instance,
 		device_id < instance->fw_supported_vd_count)) {
 
 		ld = MR_TargetIdToLdGet(device_id, local_map_ptr);
-		if (ld >= instance->fw_supported_vd_count)
+		if (ld >= instance->fw_supported_vd_count - 1)
 			fp_possible = 0;
 
 		raid = MR_LdRaidGet(ld, local_map_ptr);

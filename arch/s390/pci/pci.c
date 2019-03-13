@@ -412,6 +412,8 @@ int arch_setup_msi_irqs(struct pci_dev *pdev, int nvec, int type)
 	hwirq = 0;
 	for_each_pci_msi_entry(msi, pdev) {
 		rc = -EIO;
+		if (hwirq >= msi_vecs)
+			break;
 		irq = irq_alloc_desc(0);	/* Alloc irq on node 0 */
 		if (irq < 0)
 			goto out_msi;
@@ -880,7 +882,8 @@ static int zpci_mem_init(void)
 		goto error_zdev;
 
 	/* TODO: use realloc */
-	zpci_iomap_start = kzalloc(ZPCI_IOMAP_MAX_ENTRIES * sizeof(*zpci_iomap_start),
+	zpci_iomap_start = kcalloc(ZPCI_IOMAP_MAX_ENTRIES,
+				   sizeof(*zpci_iomap_start),
 				   GFP_KERNEL);
 	if (!zpci_iomap_start)
 		goto error_iomap;

@@ -2021,13 +2021,13 @@ struct em28xx_board em28xx_boards[] = {
 		.input           = { {
 			.type     = EM28XX_VMUX_COMPOSITE1,
 			.vmux     = TVP5150_COMPOSITE1,
-			.amux     = EM28XX_AUDIO_SRC_LINE,
+			.amux     = EM28XX_AMUX_LINE_IN,
 			.gpio     = terratec_av350_unmute_gpio,
 
 		}, {
 			.type     = EM28XX_VMUX_SVIDEO,
 			.vmux     = TVP5150_SVIDEO,
-			.amux     = EM28XX_AUDIO_SRC_LINE,
+			.amux     = EM28XX_AMUX_LINE_IN,
 			.gpio     = terratec_av350_unmute_gpio,
 		} },
 	},
@@ -3275,8 +3275,9 @@ static int em28xx_usb_probe(struct usb_interface *interface,
 
 	/* compute alternate max packet sizes */
 	dev->alt_max_pkt_size_isoc =
-				kmalloc(sizeof(dev->alt_max_pkt_size_isoc[0]) *
-					interface->num_altsetting, GFP_KERNEL);
+				kmalloc_array(interface->num_altsetting,
+					      sizeof(dev->alt_max_pkt_size_isoc[0]),
+					      GFP_KERNEL);
 	if (dev->alt_max_pkt_size_isoc == NULL) {
 		em28xx_errdev("out of memory!\n");
 		kfree(dev);

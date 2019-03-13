@@ -24,7 +24,7 @@
 #define YAMA_SCOPE_CAPABILITY	2
 #define YAMA_SCOPE_NO_ATTACH	3
 
-static int ptrace_scope = YAMA_SCOPE_RELATIONAL;
+static int ptrace_scope = YAMA_SCOPE_DISABLED;
 
 /* describe a ptrace relationship for potential exception */
 struct ptrace_relation {
@@ -288,7 +288,9 @@ static int yama_ptrace_access_check(struct task_struct *child,
 			break;
 		case YAMA_SCOPE_RELATIONAL:
 			rcu_read_lock();
-			if (!task_is_descendant(current, child) &&
+			if (!pid_alive(child))
+				rc = -EPERM;
+			if (!rc && !task_is_descendant(current, child) &&
 			    !ptracer_exception_found(current, child) &&
 			    !ns_capable(__task_cred(child)->user_ns, CAP_SYS_PTRACE))
 				rc = -EPERM;

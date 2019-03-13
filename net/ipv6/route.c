@@ -1414,8 +1414,12 @@ EXPORT_SYMBOL_GPL(ip6_update_pmtu);
 
 void ip6_sk_update_pmtu(struct sk_buff *skb, struct sock *sk, __be32 mtu)
 {
-	ip6_update_pmtu(skb, sock_net(sk), mtu,
-			sk->sk_bound_dev_if, sk->sk_mark, sk->sk_uid);
+	int oif = sk->sk_bound_dev_if;
+
+	if (!oif && skb->dev)
+		oif = l3mdev_master_ifindex(skb->dev);
+
+	ip6_update_pmtu(skb, sock_net(sk), mtu, oif, sk->sk_mark, sk->sk_uid);
 }
 EXPORT_SYMBOL_GPL(ip6_sk_update_pmtu);
 
@@ -1715,7 +1719,7 @@ static int ip6_convert_metrics(struct mx6_config *mxc,
 	if (!cfg->fc_mx)
 		return 0;
 
-	mp = kzalloc(sizeof(u32) * RTAX_MAX, GFP_KERNEL);
+	mp = kcalloc(RTAX_MAX, sizeof(u32), GFP_KERNEL);
 	if (unlikely(!mp))
 		return -ENOMEM;
 

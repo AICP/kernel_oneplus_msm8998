@@ -1201,7 +1201,7 @@ static int i2c_msm_dma_xfer_process(struct i2c_msm_ctrl *ctrl)
 		return ret;
 	}
 
-	sg_tx = kzalloc(sizeof(struct scatterlist) * tx->desc_cnt_cur,
+	sg_tx = kcalloc(tx->desc_cnt_cur, sizeof(struct scatterlist),
 								GFP_KERNEL);
 	if (!sg_tx) {
 		ret = -ENOMEM;
@@ -1210,7 +1210,7 @@ static int i2c_msm_dma_xfer_process(struct i2c_msm_ctrl *ctrl)
 	sg_init_table(sg_tx, tx->desc_cnt_cur);
 	sg_tx_itr = sg_tx;
 
-	sg_rx = kzalloc(sizeof(struct scatterlist) * rx->desc_cnt_cur,
+	sg_rx = kcalloc(rx->desc_cnt_cur, sizeof(struct scatterlist),
 								GFP_KERNEL);
 	if (!sg_rx) {
 		ret = -ENOMEM;
@@ -1588,14 +1588,14 @@ static int i2c_msm_clk_path_init_structs(struct i2c_msm_ctrl *ctrl)
 
 	i2c_msm_dbg(ctrl, MSM_PROF, "initializes path clock voting structs");
 
-	paths = devm_kzalloc(ctrl->dev, sizeof(*paths) * 2, GFP_KERNEL);
+	paths = devm_kcalloc(ctrl->dev, 2, sizeof(*paths), GFP_KERNEL);
 	if (!paths) {
 		dev_err(ctrl->dev,
 			"error msm_bus_paths.paths memory allocation failed\n");
 		return -ENOMEM;
 	}
 
-	usecases = devm_kzalloc(ctrl->dev, sizeof(*usecases) * 2, GFP_KERNEL);
+	usecases = devm_kcalloc(ctrl->dev, 2, sizeof(*usecases), GFP_KERNEL);
 	if (!usecases) {
 		dev_err(ctrl->dev,
 		"error  msm_bus_scale_pdata.usecases memory allocation failed\n");
@@ -2330,6 +2330,12 @@ i2c_msm_frmwrk_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 	struct i2c_msm_ctrl      *ctrl = i2c_get_adapdata(adap);
 	struct i2c_msm_xfer      *xfer = &ctrl->xfer;
 
+	if (num < 1) {
+		dev_err(ctrl->dev,
+		"error on number of msgs(%d) received\n", num);
+		return -EINVAL;
+	}
+
 	if (IS_ERR_OR_NULL(msgs)) {
 		dev_err(ctrl->dev, " error on msgs Accessing invalid  pointer location\n");
 		return PTR_ERR(msgs);
@@ -2866,7 +2872,7 @@ static const struct i2c_algorithm i2c_msm_frmwrk_algrtm = {
 	.functionality	= i2c_msm_frmwrk_func,
 };
 
-static const char const *i2c_msm_adapter_name = "MSM-I2C-v2-adapter";
+static const char *i2c_msm_adapter_name = "MSM-I2C-v2-adapter";
 
 static int i2c_msm_frmwrk_reg(struct platform_device *pdev,
 						struct i2c_msm_ctrl *ctrl)

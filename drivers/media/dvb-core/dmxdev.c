@@ -448,17 +448,18 @@ static int dvb_dmxdev_update_events(struct dmxdev_events_queue *events,
 				bytes_read = 0;
 			}
 		} else {
-			if (bytes_read)
-				/*
-				 * data was read beyond the non-data event,
-				 * making it not relevant anymore
-				 */
-				events->notified_index =
-					dvb_dmxdev_advance_event_idx(
-						events->notified_index);
-				if (!(events->event_mask.no_wakeup_mask &
-					event->type))
-					events->wakeup_events_counter--;
+				if (bytes_read){
+					/*
+					 * data was read beyond the non-data event,
+					 * making it not relevant anymore
+					 */
+					events->notified_index =
+						dvb_dmxdev_advance_event_idx(
+							events->notified_index);
+					if (!(events->event_mask.no_wakeup_mask &
+						event->type))
+						events->wakeup_events_counter--;
+				}
 		}
 
 		events->read_index = events->notified_index;
@@ -4837,7 +4838,7 @@ int dvb_dmxdev_init(struct dmxdev *dmxdev, struct dvb_adapter *dvb_adapter)
 	if (dmxdev->demux->open(dmxdev->demux) < 0)
 		return -EUSERS;
 
-	dmxdev->filter = vmalloc(dmxdev->filternum * sizeof(struct dmxdev_filter));
+	dmxdev->filter = vmalloc(array_size(sizeof(struct dmxdev_filter), dmxdev->filternum));
 	if (!dmxdev->filter)
 		return -ENOMEM;
 

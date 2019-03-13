@@ -258,7 +258,8 @@ static noinline int i2cdev_ioctl_rdwr(struct i2c_client *client,
 	if (IS_ERR(rdwr_pa))
 		return PTR_ERR(rdwr_pa);
 
-	data_ptrs = kmalloc(rdwr_arg.nmsgs * sizeof(u8 __user *), GFP_KERNEL);
+	data_ptrs = kmalloc_array(rdwr_arg.nmsgs, sizeof(u8 __user *),
+				  GFP_KERNEL);
 	if (data_ptrs == NULL) {
 		kfree(rdwr_pa);
 		return -ENOMEM;
@@ -459,9 +460,15 @@ static long i2cdev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		return i2cdev_ioctl_smbus(client, arg);
 
 	case I2C_RETRIES:
+		if (arg > INT_MAX)
+			return -EINVAL;
+
 		client->adapter->retries = arg;
 		break;
 	case I2C_TIMEOUT:
+		if (arg > INT_MAX)
+			return -EINVAL;
+
 		/* For historical reasons, user-space sets the timeout
 		 * value in units of 10 ms.
 		 */

@@ -583,7 +583,7 @@ static void gs_rx_push(struct work_struct *w)
 		}
 
 		/* push data to (open) tty */
-		if (req->actual) {
+		if (req->actual && tty) {
 			char		*packet = req->buf;
 			unsigned	size = req->actual;
 			unsigned	n;
@@ -1265,7 +1265,7 @@ static ssize_t debug_read_status(struct file *file, char __user *ubuf,
 	tty = ui_dev->port.tty;
 	gser = ui_dev->port_usb;
 
-	buf = kzalloc(sizeof(char) * BUF_SIZE, GFP_KERNEL);
+	buf = kzalloc(BUF_SIZE, GFP_KERNEL);
 	if (!buf)
 		return -ENOMEM;
 

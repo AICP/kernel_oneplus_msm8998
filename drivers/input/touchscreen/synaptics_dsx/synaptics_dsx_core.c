@@ -917,6 +917,14 @@ static int synaptics_rmi4_f11_abs_report(struct synaptics_rmi4_data *rmi4_data,
 	if (retval < 0)
 		return 0;
 
+#ifdef CONFIG_CUSTOM_ROM
+	input_event(rmi4_data->input_dev, EV_SYN, SYN_TIME_SEC,
+			ktime_to_timespec(rmi4_data->timestamp).tv_sec);
+
+	input_event(rmi4_data->input_dev, EV_SYN, SYN_TIME_NSEC,
+			ktime_to_timespec(rmi4_data->timestamp).tv_nsec);
+#ifdef
+
 	for (finger = 0; finger < fingers_supported; finger++) {
 		reg_index = finger / 4;
 		finger_shift = (finger % 4) * 2;
@@ -1105,6 +1113,14 @@ static int synaptics_rmi4_f12_abs_report(struct synaptics_rmi4_data *rmi4_data,
 		return 0;
 
 	data = (struct synaptics_rmi4_f12_finger_data *)fhandler->data;
+
+#ifdef CONFIG_CUSTOM_ROM
+	input_event(rmi4_data->input_dev, EV_SYN, SYN_TIME_SEC,
+			ktime_to_timespec(rmi4_data->timestamp).tv_sec);
+
+	input_event(rmi4_data->input_dev, EV_SYN, SYN_TIME_NSEC,
+			ktime_to_timespec(rmi4_data->timestamp).tv_nsec);
+#ifdef
 
 	for (finger = 0; finger < fingers_to_process; finger++) {
 		finger_data = data + finger;
@@ -1437,6 +1453,10 @@ static irqreturn_t synaptics_rmi4_irq(int irq, void *data)
 
 	if (IRQ_HANDLED == synaptics_filter_interrupt(data))
 		return IRQ_HANDLED;
+
+#ifdef CONFIG_CUSTOM_ROM
+	rmi4_data->timestamp = ktime_get();
+#endif
 
 	synaptics_rmi4_sensor_report(rmi4_data);
 
@@ -1999,7 +2019,7 @@ static int synaptics_rmi4_f1a_alloc_mem(struct synaptics_rmi4_data *rmi4_data,
 
 	f1a->max_count = f1a->button_query.max_button_count + 1;
 
-	f1a->button_control.txrx_map = kzalloc(f1a->max_count * 2, GFP_KERNEL);
+	f1a->button_control.txrx_map = kcalloc(f1a->max_count, 2, GFP_KERNEL);
 	if (!f1a->button_control.txrx_map) {
 		dev_err(rmi4_data->pdev->dev.parent,
 				"%s: Failed to alloc mem for tx rx mapping\n",
@@ -2723,9 +2743,9 @@ static int synaptics_dsx_get_virtual_keys(struct device *dev,
 	if (!rmi4_pdata->virtual_key_map)
 		return -ENOMEM;
 
-	rmi4_pdata->virtual_key_map->map = devm_kzalloc(dev,
-		sizeof(*rmi4_pdata->virtual_key_map->map) *
-		num_keys, GFP_KERNEL);
+	rmi4_pdata->virtual_key_map->map = devm_kcalloc(dev,
+		num_keys, sizeof(*rmi4_pdata->virtual_key_map->map),
+		GFP_KERNEL);
 	if (!rmi4_pdata->virtual_key_map->map)
 		return -ENOMEM;
 
@@ -2758,9 +2778,9 @@ static int synaptics_dsx_get_button_map(struct device *dev,
 	if (!rmi4_pdata->cap_button_map)
 		return -ENOMEM;
 
-	rmi4_pdata->cap_button_map->map = devm_kzalloc(dev,
-		sizeof(*rmi4_pdata->cap_button_map->map) *
-		num_buttons, GFP_KERNEL);
+	rmi4_pdata->cap_button_map->map = devm_kcalloc(dev,
+		num_buttons, sizeof(*rmi4_pdata->cap_button_map->map),
+		GFP_KERNEL);
 	if (!rmi4_pdata->cap_button_map->map)
 		return -ENOMEM;
 

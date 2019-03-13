@@ -348,7 +348,7 @@ static struct mdss_mdp_format_params dest_scaler_fmt = {
 #define HIST_INTR_DSPP_MASK		0xFFF000
 #define HIST_V2_INTR_BIT_MASK		0xF33000
 #define HIST_V1_INTR_BIT_MASK		0X333333
-#define HIST_WAIT_TIMEOUT(frame) ((75 * HZ * (frame)) / 1000)
+#define HIST_WAIT_TIMEOUT(frame) ((75 * msecs_to_jiffies(1000) * (frame)) / 1000)
 #define HIST_KICKOFF_WAIT_FRACTION 4
 
 /* hist collect state */
@@ -3368,8 +3368,7 @@ static int pp_ad_calc_bl(struct msm_fb_data_type *mfd, int bl_in, int *bl_out,
 		return -EPERM;
 	}
 
-	if (!ad->bl_mfd || !ad->bl_mfd->panel_info ||
-		!ad->bl_att_lut) {
+	if (!ad->bl_mfd || !ad->bl_mfd->panel_info) {
 		pr_err("Invalid ad info: bl_mfd = 0x%pK, ad->bl_mfd->panel_info = 0x%pK, bl_att_lut = 0x%pK\n",
 			ad->bl_mfd,
 			(!ad->bl_mfd) ? NULL : ad->bl_mfd->panel_info,
@@ -4081,7 +4080,8 @@ int mdss_mdp_igc_lut_config(struct msm_fb_data_type *mfd,
 		if (config->len != IGC_LUT_ENTRIES) {
 			pr_err("invalid len for IGC table for read %d\n",
 			       config->len);
-			return -EINVAL;
+			ret = -EINVAL;
+			goto igc_config_exit;
 		}
 		ret = pp_get_dspp_num(disp_num, &dspp_num);
 		if (ret) {
@@ -4147,7 +4147,8 @@ clock_off:
 		if (config->len != IGC_LUT_ENTRIES) {
 			pr_err("invalid len for IGC table for write %d\n",
 			       config->len);
-			return -EINVAL;
+			ret = -EINVAL;
+			goto igc_config_exit;
 		}
 		if (copy_from_kernel) {
 			memcpy(&mdss_pp_res->igc_lut_c0c1[disp_num][0],
@@ -4837,9 +4838,9 @@ int mdss_mdp_gamut_config(struct msm_fb_data_type *mfd,
 		addr = mdss_mdp_get_dspp_addr_off(dspp_num) +
 			  MDSS_MDP_REG_DSPP_GAMUT_BASE;
 		for (i = 0; i < MDP_GAMUT_TABLE_NUM; i++) {
-			r_tbl[i] = kzalloc(
-				sizeof(uint16_t) * config->tbl_size[i],
-				GFP_KERNEL);
+			r_tbl[i] = kcalloc(config->tbl_size[i],
+					   sizeof(uint16_t),
+					   GFP_KERNEL);
 			if (!r_tbl[i]) {
 				pr_err("%s: alloc failed\n", __func__);
 				ret = -ENOMEM;
@@ -4861,9 +4862,9 @@ int mdss_mdp_gamut_config(struct msm_fb_data_type *mfd,
 			}
 		}
 		for (i = 0; i < MDP_GAMUT_TABLE_NUM; i++) {
-			g_tbl[i] = kzalloc(
-				sizeof(uint16_t) * config->tbl_size[i],
-				GFP_KERNEL);
+			g_tbl[i] = kcalloc(config->tbl_size[i],
+					   sizeof(uint16_t),
+					   GFP_KERNEL);
 			if (!g_tbl[i]) {
 				pr_err("%s: alloc failed\n", __func__);
 				ret = -ENOMEM;
@@ -4885,9 +4886,9 @@ int mdss_mdp_gamut_config(struct msm_fb_data_type *mfd,
 			}
 		}
 		for (i = 0; i < MDP_GAMUT_TABLE_NUM; i++) {
-			b_tbl[i] = kzalloc(
-				sizeof(uint16_t) * config->tbl_size[i],
-				GFP_KERNEL);
+			b_tbl[i] = kcalloc(config->tbl_size[i],
+					   sizeof(uint16_t),
+					   GFP_KERNEL);
 			if (!b_tbl[i]) {
 				pr_err("%s: alloc failed\n", __func__);
 				ret = -ENOMEM;
@@ -5623,8 +5624,9 @@ int mdss_mdp_hist_collect(struct mdp_histogram_data *hist)
 			goto hist_collect_exit;
 		}
 		if (pipe_cnt > 1) {
-			hist_concat = kzalloc(HIST_V_SIZE * pipe_cnt *
-						sizeof(u32), GFP_KERNEL);
+			hist_concat = kcalloc(HIST_V_SIZE * pipe_cnt,
+					      sizeof(u32),
+					      GFP_KERNEL);
 			if (!hist_concat) {
 				ret = -ENOMEM;
 				goto hist_collect_exit;
@@ -6806,8 +6808,8 @@ int mdss_mdp_ad_addr_setup(struct mdss_data_type *mdata, u32 *ad_offsets)
 	u32 i;
 	int rc = 0;
 
-	mdata->ad_off = devm_kzalloc(&mdata->pdev->dev,
-				sizeof(struct mdss_mdp_ad) * mdata->nad_cfgs,
+	mdata->ad_off = devm_kcalloc(&mdata->pdev->dev,
+				mdata->nad_cfgs, sizeof(struct mdss_mdp_ad),
 				GFP_KERNEL);
 
 	if (!mdata->ad_off) {
@@ -6815,8 +6817,8 @@ int mdss_mdp_ad_addr_setup(struct mdss_data_type *mdata, u32 *ad_offsets)
 		return -ENOMEM;
 	}
 
-	mdata->ad_cfgs = devm_kzalloc(&mdata->pdev->dev,
-			sizeof(struct mdss_ad_info) * mdata->nad_cfgs,
+	mdata->ad_cfgs = devm_kcalloc(&mdata->pdev->dev,
+			mdata->nad_cfgs, sizeof(struct mdss_ad_info),
 			GFP_KERNEL);
 
 	if (!mdata->ad_cfgs) {

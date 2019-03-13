@@ -54,17 +54,16 @@ fail_read:
 	return 0;
 }
 
+static inline bool is_compatible(char *compat)
+{
+	return !!of_find_compatible_node(NULL, NULL, compat);
+}
+
 static inline enum imem_type read_imem_type(struct platform_device *pdev)
 {
-	bool is_compatible(char *compat)
-	{
-		return !!of_find_compatible_node(NULL, NULL, compat);
-	}
-
 	return is_compatible("qcom,msm-ocmem") ? IMEM_OCMEM :
 		is_compatible("qcom,msm-vmem") ? IMEM_VMEM :
 						IMEM_NONE;
-
 }
 
 static inline void msm_vidc_free_allowed_clocks_table(
@@ -200,8 +199,10 @@ static int msm_vidc_load_reg_table(struct msm_vidc_platform_resources *res)
 		return rc;
 	}
 
-	reg_set->reg_tbl = devm_kzalloc(&pdev->dev, reg_set->count *
-			sizeof(*(reg_set->reg_tbl)), GFP_KERNEL);
+	reg_set->reg_tbl = devm_kcalloc(&pdev->dev,
+					reg_set->count,
+					sizeof(*(reg_set->reg_tbl)),
+					GFP_KERNEL);
 	if (!reg_set->reg_tbl) {
 		dprintk(VIDC_ERR, "%s Failed to alloc register table\n",
 			__func__);
@@ -247,8 +248,9 @@ static int msm_vidc_load_qdss_table(struct msm_vidc_platform_resources *res)
 		return rc;
 	}
 
-	qdss_addr_set->addr_tbl = devm_kzalloc(&pdev->dev,
-			qdss_addr_set->count * sizeof(*qdss_addr_set->addr_tbl),
+	qdss_addr_set->addr_tbl = devm_kcalloc(&pdev->dev,
+			qdss_addr_set->count,
+			sizeof(*qdss_addr_set->addr_tbl),
 			GFP_KERNEL);
 	if (!qdss_addr_set->addr_tbl) {
 		dprintk(VIDC_ERR, "%s Failed to alloc register table\n",
@@ -294,8 +296,10 @@ static int msm_vidc_load_imem_ab_table(struct msm_vidc_platform_resources *res)
 		return -EINVAL;
 	}
 
-	res->imem_ab_tbl = devm_kzalloc(&pdev->dev, num_elements *
-			sizeof(*res->imem_ab_tbl), GFP_KERNEL);
+	res->imem_ab_tbl = devm_kcalloc(&pdev->dev,
+					num_elements,
+					sizeof(*res->imem_ab_tbl),
+					GFP_KERNEL);
 	if (!res->imem_ab_tbl) {
 		dprintk(VIDC_ERR, "Failed to alloc imem_ab_tbl\n");
 		return -ENOMEM;
@@ -350,7 +354,7 @@ int msm_vidc_load_u32_table(struct platform_device *pdev,
 	}
 	num_elemts /= struct_size / sizeof(u32);
 
-	ptbl = devm_kzalloc(&pdev->dev, num_elemts * struct_size, GFP_KERNEL);
+	ptbl = devm_kcalloc(&pdev->dev, struct_size, num_elemts, GFP_KERNEL);
 	if (!ptbl) {
 		dprintk(VIDC_ERR, "Failed to alloc table %s\n", table_name);
 		return -ENOMEM;
@@ -449,9 +453,10 @@ static int msm_vidc_load_cycles_per_mb_table(
 		return 0;
 	}
 
-	clock_freq_tbl->clk_prof_entries = devm_kzalloc(&pdev->dev,
-		sizeof(*clock_freq_tbl->clk_prof_entries) *
-		clock_freq_tbl->count, GFP_KERNEL);
+	clock_freq_tbl->clk_prof_entries = devm_kcalloc(&pdev->dev,
+		clock_freq_tbl->count,
+		sizeof(*clock_freq_tbl->clk_prof_entries),
+		GFP_KERNEL);
 	if (!clock_freq_tbl->clk_prof_entries) {
 		dprintk(VIDC_DBG, "no memory to allocate clk_prof_entries\n");
 		return -ENOMEM;
@@ -518,19 +523,19 @@ error:
 	return rc;
 }
 
+/* A comparator to compare loads (needed later on) */
+static int cmp_load_freq_table(const void *a, const void *b)
+{
+	/* want to sort in reverse so flip the comparison */
+	return ((struct load_freq_table *)b)->load -
+		((struct load_freq_table *)a)->load;
+}
+
 static int msm_vidc_load_freq_table(struct msm_vidc_platform_resources *res)
 {
 	int rc = 0;
 	int num_elements = 0;
 	struct platform_device *pdev = res->pdev;
-
-	/* A comparator to compare loads (needed later on) */
-	int cmp(const void *a, const void *b)
-	{
-		/* want to sort in reverse so flip the comparison */
-		return ((struct load_freq_table *)b)->load -
-			((struct load_freq_table *)a)->load;
-	}
 
 	if (!of_find_property(pdev->dev.of_node, "qcom,load-freq-tbl", NULL)) {
 		/* qcom,load-freq-tbl is an optional property.  It likely won't
@@ -547,8 +552,10 @@ static int msm_vidc_load_freq_table(struct msm_vidc_platform_resources *res)
 		return rc;
 	}
 
-	res->load_freq_tbl = devm_kzalloc(&pdev->dev, num_elements *
-			sizeof(*res->load_freq_tbl), GFP_KERNEL);
+	res->load_freq_tbl = devm_kcalloc(&pdev->dev,
+					  num_elements,
+					  sizeof(*res->load_freq_tbl),
+					  GFP_KERNEL);
 	if (!res->load_freq_tbl) {
 		dprintk(VIDC_ERR,
 				"%s Failed to alloc load_freq_tbl\n",
@@ -571,7 +578,7 @@ static int msm_vidc_load_freq_table(struct msm_vidc_platform_resources *res)
 	 * logic to work, just sort it ourselves
 	 */
 	sort(res->load_freq_tbl, res->load_freq_tbl_size,
-			sizeof(*res->load_freq_tbl), cmp, NULL);
+			sizeof(*res->load_freq_tbl), cmp_load_freq_table, NULL);
 	return rc;
 }
 
@@ -599,8 +606,9 @@ static int msm_vidc_load_dcvs_table(struct msm_vidc_platform_resources *res)
 		return rc;
 	}
 
-	res->dcvs_tbl = devm_kzalloc(&pdev->dev, num_elements *
-			sizeof(*res->dcvs_tbl), GFP_KERNEL);
+	res->dcvs_tbl = devm_kcalloc(&pdev->dev,
+				     num_elements, sizeof(*res->dcvs_tbl),
+				     GFP_KERNEL);
 	if (!res->dcvs_tbl) {
 		dprintk(VIDC_ERR,
 				"%s Failed to alloc dcvs_tbl\n",
@@ -645,8 +653,9 @@ static int msm_vidc_load_dcvs_limit(struct msm_vidc_platform_resources *res)
 		return rc;
 	}
 
-	res->dcvs_limit = devm_kzalloc(&pdev->dev, num_elements *
-			sizeof(*res->dcvs_limit), GFP_KERNEL);
+	res->dcvs_limit = devm_kcalloc(&pdev->dev,
+				       num_elements, sizeof(*res->dcvs_limit),
+				       GFP_KERNEL);
 	if (!res->dcvs_limit) {
 		dprintk(VIDC_ERR,
 				"%s Failed to alloc dcvs_limit\n",
@@ -765,8 +774,8 @@ static int msm_vidc_load_buffer_usage_table(
 		return 0;
 	}
 
-	buffer_usage_set->buffer_usage_tbl = devm_kzalloc(&pdev->dev,
-			buffer_usage_set->count *
+	buffer_usage_set->buffer_usage_tbl = devm_kcalloc(&pdev->dev,
+			buffer_usage_set->count,
 			sizeof(*buffer_usage_set->buffer_usage_tbl),
 			GFP_KERNEL);
 	if (!buffer_usage_set->buffer_usage_tbl) {
@@ -821,9 +830,9 @@ static int msm_vidc_load_regulator_table(
 		reg_count++;
 	}
 
-	regulators->regulator_tbl = devm_kzalloc(&pdev->dev,
-			sizeof(*regulators->regulator_tbl) *
-			reg_count, GFP_KERNEL);
+	regulators->regulator_tbl = devm_kcalloc(&pdev->dev,
+			reg_count, sizeof(*regulators->regulator_tbl),
+			GFP_KERNEL);
 
 	if (!regulators->regulator_tbl) {
 		rc = -ENOMEM;
@@ -905,8 +914,9 @@ static int msm_vidc_load_clock_table(
 		goto err_load_clk_table_fail;
 	}
 
-	clock_props = devm_kzalloc(&pdev->dev, num_clocks *
-			sizeof(*clock_props), GFP_KERNEL);
+	clock_props = devm_kcalloc(&pdev->dev,
+				   num_clocks, sizeof(*clock_props),
+				   GFP_KERNEL);
 	if (!clock_props) {
 		dprintk(VIDC_ERR, "No memory to read clock properties\n");
 		rc = -ENOMEM;
@@ -921,8 +931,10 @@ static int msm_vidc_load_clock_table(
 		goto err_load_clk_prop_fail;
 	}
 
-	clocks->clock_tbl = devm_kzalloc(&pdev->dev, sizeof(*clocks->clock_tbl)
-			* num_clocks, GFP_KERNEL);
+	clocks->clock_tbl = devm_kcalloc(&pdev->dev,
+					 num_clocks,
+					 sizeof(*clocks->clock_tbl),
+					 GFP_KERNEL);
 	if (!clocks->clock_tbl) {
 		dprintk(VIDC_ERR, "Failed to allocate memory for clock tbl\n");
 		rc = -ENOMEM;

@@ -35,6 +35,9 @@
 #include <sound/initval.h>
 #include <linux/kmod.h>
 
+/* internal flags */
+#define SNDRV_TIMER_IFLG_PAUSED		0x00010000
+
 #if IS_ENABLED(CONFIG_SND_HRTIMER)
 #define DEFAULT_TIMER_LIMIT 4
 #elif IS_ENABLED(CONFIG_SND_RTCTIMER)
@@ -547,6 +550,10 @@ static int snd_timer_stop1(struct snd_timer_instance *timeri, bool stop)
 		}
 	}
 	timeri->flags &= ~(SNDRV_TIMER_IFLG_RUNNING | SNDRV_TIMER_IFLG_START);
+	if (stop)
+		timeri->flags &= ~SNDRV_TIMER_IFLG_PAUSED;
+	else
+		timeri->flags |= SNDRV_TIMER_IFLG_PAUSED;
 	snd_timer_notify1(timeri, stop ? SNDRV_TIMER_EVENT_STOP :
 			  SNDRV_TIMER_EVENT_PAUSE);
  unlock:
@@ -608,6 +615,10 @@ int snd_timer_stop(struct snd_timer_instance *timeri)
  */
 int snd_timer_continue(struct snd_timer_instance *timeri)
 {
+	/* timer can continue only after pause */
+	if (!(timeri->flags & SNDRV_TIMER_IFLG_PAUSED))
+		return -EINVAL;
+
 	if (timeri->flags & SNDRV_TIMER_IFLG_SLAVE)
 		return snd_timer_start_slave(timeri, false);
 	else
@@ -1336,8 +1347,9 @@ static int snd_timer_user_open(struct inode *inode, struct file *file)
 	mutex_init(&tu->ioctl_lock);
 	tu->ticks = 1;
 	tu->queue_size = 128;
-	tu->queue = kmalloc(tu->queue_size * sizeof(struct snd_timer_read),
-			    GFP_KERNEL);
+	tu->queue = kmalloc_array(tu->queue_size,
+				  sizeof(struct snd_timer_read),
+				  GFP_KERNEL);
 	if (tu->queue == NULL) {
 		kfree(tu);
 		return -ENOMEM;
@@ -1615,13 +1627,15 @@ static int snd_timer_user_tselect(struct file *file,
 	kfree(tu->tqueue);
 	tu->tqueue = NULL;
 	if (tu->tread) {
-		tu->tqueue = kmalloc(tu->queue_size * sizeof(struct snd_timer_tread),
-				     GFP_KERNEL);
+		tu->tqueue = kmalloc_array(tu->queue_size,
+					   sizeof(struct snd_timer_tread),
+					   GFP_KERNEL);
 		if (tu->tqueue == NULL)
 			err = -ENOMEM;
 	} else {
-		tu->queue = kmalloc(tu->queue_size * sizeof(struct snd_timer_read),
-				    GFP_KERNEL);
+		tu->queue = kmalloc_array(tu->queue_size,
+					  sizeof(struct snd_timer_read),
+					  GFP_KERNEL);
 		if (tu->queue == NULL)
 			err = -ENOMEM;
 	}
@@ -1742,16 +1756,16 @@ static int snd_timer_user_params(struct file *file,
 	if (params.queue_size > 0 &&
 	    (unsigned int)tu->queue_size != params.queue_size) {
 		if (tu->tread) {
-			ttr = kmalloc(params.queue_size * sizeof(*ttr),
-				      GFP_KERNEL);
+			ttr = kmalloc_array(params.queue_size, sizeof(*ttr),
+					    GFP_KERNEL);
 			if (ttr) {
 				kfree(tu->tqueue);
 				tu->queue_size = params.queue_size;
 				tu->tqueue = ttr;
 			}
 		} else {
-			tr = kmalloc(params.queue_size * sizeof(*tr),
-				     GFP_KERNEL);
+			tr = kmalloc_array(params.queue_size, sizeof(*tr),
+					   GFP_KERNEL);
 			if (tr) {
 				kfree(tu->queue);
 				tu->queue_size = params.queue_size;
@@ -1841,6 +1855,9 @@ static int snd_timer_user_continue(struct file *file)
 	tu = file->private_data;
 	if (!tu->timeri)
 		return -EBADFD;
+	/* start timer instead of continue if it's not used before */
+	if (!(tu->timeri->flags & SNDRV_TIMER_IFLG_PAUSED))
+		return snd_timer_user_start(file);
 	tu->timeri->lost = 0;
 	return (err = snd_timer_continue(tu->timeri)) < 0 ? err : 0;
 }

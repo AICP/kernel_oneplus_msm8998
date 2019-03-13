@@ -218,7 +218,6 @@ enum rq_flag_bits {
 	__REQ_PM,		/* runtime pm request */
 	__REQ_HASHED,		/* on IO scheduler merge hash */
 	__REQ_MQ_INFLIGHT,	/* track inflight for MQ */
-	__REQ_NO_TIMEOUT,	/* requests may never expire */
 	__REQ_URGENT,		/* urgent request */
 	__REQ_NR_BITS,		/* stops here */
 };
@@ -276,7 +275,6 @@ enum rq_flag_bits {
 #define REQ_PM			(1ULL << __REQ_PM)
 #define REQ_HASHED		(1ULL << __REQ_HASHED)
 #define REQ_MQ_INFLIGHT		(1ULL << __REQ_MQ_INFLIGHT)
-#define REQ_NO_TIMEOUT		(1ULL << __REQ_NO_TIMEOUT)
 
 typedef unsigned int blk_qc_t;
 #define BLK_QC_T_NONE	-1U
@@ -300,6 +298,30 @@ static inline unsigned int blk_qc_t_to_queue_num(blk_qc_t cookie)
 static inline unsigned int blk_qc_t_to_tag(blk_qc_t cookie)
 {
 	return cookie & ((1u << BLK_QC_T_SHIFT) - 1);
+}
+
+enum req_op {
+	REQ_OP_READ,
+	REQ_OP_WRITE		= REQ_WRITE,
+	REQ_OP_DISCARD		= REQ_DISCARD,
+	REQ_OP_WRITE_SAME	= REQ_WRITE_SAME,
+};
+
+/*
+ * tmp cpmpat. Users used to set the write bit for all non reads, but
+ * we will be dropping the bitmap use for ops. Support both until
+ * the end of the patchset.
+ */
+static inline int op_from_rq_bits(u64 flags)
+{
+	if (flags & REQ_OP_DISCARD)
+		return REQ_OP_DISCARD;
+	else if (flags & REQ_OP_WRITE_SAME)
+		return REQ_OP_WRITE_SAME;
+	else if (flags & REQ_OP_WRITE)
+		return REQ_OP_WRITE;
+	else
+		return REQ_OP_READ;
 }
 
 #endif /* __LINUX_BLK_TYPES_H */

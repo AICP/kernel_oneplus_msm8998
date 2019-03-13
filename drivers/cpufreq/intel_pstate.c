@@ -1187,6 +1187,7 @@ static int intel_pstate_cpu_init(struct cpufreq_policy *policy)
 
 	policy->min = cpu->pstate.min_pstate * cpu->pstate.scaling;
 	policy->max = cpu->pstate.turbo_pstate * cpu->pstate.scaling;
+	policy->iowait_boost_enable = true;
 
 	/* cpuinfo and default policy values */
 	policy->cpuinfo.min_freq = cpu->pstate.min_pstate * cpu->pstate.scaling;
@@ -1403,7 +1404,7 @@ hwp_cpu_matched:
 
 	pr_info("Intel P-state driver initializing.\n");
 
-	all_cpu_data = vzalloc(sizeof(void *) * num_possible_cpus());
+	all_cpu_data = vzalloc(array_size(sizeof(void *), num_possible_cpus()));
 	if (!all_cpu_data)
 		return -ENOMEM;
 

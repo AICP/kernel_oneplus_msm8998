@@ -1109,8 +1109,13 @@ int drm_fb_helper_check_var(struct fb_var_screeninfo *var,
 	struct drm_framebuffer *fb = fb_helper->fb;
 	int depth;
 
-	if (var->pixclock != 0 || in_dbg_master())
+	if (in_dbg_master())
 		return -EINVAL;
+
+	if (var->pixclock != 0) {
+		DRM_DEBUG("fbdev emulation doesn't support changing the pixel clock, value of pixclock is ignored\n");
+		var->pixclock = 0;
+	}
 
 	/* Need to resize the fb object !!! */
 	if (var->bits_per_pixel > fb->bits_per_pixel ||
@@ -1917,8 +1922,9 @@ static int drm_pick_crtcs(struct drm_fb_helper *fb_helper,
 	if (modes[n] == NULL)
 		return best_score;
 
-	crtcs = kzalloc(fb_helper->connector_count *
-			sizeof(struct drm_fb_helper_crtc *), GFP_KERNEL);
+	crtcs = kcalloc(fb_helper->connector_count,
+			sizeof(struct drm_fb_helper_crtc *),
+			GFP_KERNEL);
 	if (!crtcs)
 		return best_score;
 
