@@ -341,7 +341,6 @@ static inline unsigned long copy_to_user(void __user *to,
 {
 	if (access_ok(VERIFY_WRITE, to, n))
 		return __copy_tofrom_user(to, (__force void __user *)from, n);
-	}
 	return n;
 }
 
