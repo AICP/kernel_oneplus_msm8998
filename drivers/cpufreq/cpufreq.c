@@ -2358,7 +2358,7 @@ static int cpufreq_set_policy(struct cpufreq_policy *policy,
 	}
 	else {
 		if (new_policy->min != LP_MIN_FREQUENCY)
-			new_policy->min = LP_MIN_FREQUENCY;		
+			new_policy->min = LP_MIN_FREQUENCY;
 	}
 
 	pr_debug("setting new policy for CPU %u: %u - %u kHz\n",
