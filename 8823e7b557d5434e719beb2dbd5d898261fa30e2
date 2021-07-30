@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "515d4de5_1448d3db",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 209
+      },
+      "writtenOn": "2021-07-30T13:39:18Z",
+      "side": 1,
+      "message": "Makes adb logcat usable again without grep -v.",
+      "revId": "8823e7b557d5434e719beb2dbd5d898261fa30e2",
+      "serverId": "9f904cbb-a964-4fab-a7dc-5cfc4d5c238b"
+    }
+  ]
+}
